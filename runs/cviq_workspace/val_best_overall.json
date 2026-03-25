@@ -1,0 +1,9 @@
+{
+  "PLCC": 1.0,
+  "SRCC": 0.9999999999999999,
+  "RMSE": 38.64579927335888,
+  "distortion_acc": 0.5,
+  "compression_acc": 0.0,
+  "num_samples": 2,
+  "num_batches": 1
+}

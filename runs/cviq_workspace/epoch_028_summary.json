@@ -1,0 +1,20 @@
+{
+  "epoch": 28,
+  "train_loss_total": 106.62024378120353,
+  "train_loss_quality": 106.23371692097516,
+  "train_loss_distortion": 2.5015529426959677,
+  "train_loss_compression": 1.3637165224880254,
+  "train_lr": 5.233476330273609e-05,
+  "train_num_batches": 109.0,
+  "val_PLCC": 0.720520067413973,
+  "val_SRCC": 0.7902039260529826,
+  "val_RMSE": 11.18571186341864,
+  "val_distortion_acc": 0.0,
+  "val_compression_acc": 0.3148148148148148,
+  "val_num_samples": 54,
+  "val_num_batches": 14,
+  "val_loss_loss_total": 154.71796553475517,
+  "val_loss_loss_quality": 154.33391952514648,
+  "val_loss_loss_distortion": 2.4838566950389316,
+  "val_loss_loss_compression": 1.3565891214779444
+}

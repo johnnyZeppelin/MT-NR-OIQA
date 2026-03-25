@@ -1,0 +1,4 @@
+| section | compression_type | PLCC | SRCC | RMSE | distortion_acc | compression_acc | num_samples | num_batches |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| overall | overall | 1.0 | 0.9999999999999999 | 38.64579927335888 | 0.5 | 0.0 | 2.0 | 1.0 |
+| per_type | AVC | 1.0 | 0.9999999999999999 | 38.64579927335888 |  |  |  |  |

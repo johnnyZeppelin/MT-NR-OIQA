@@ -1,0 +1,46 @@
+{
+  "checkpoint_used_for_final_eval": "/workspace/MT-NR-OIQA/runs/cviq_workspace/best.pt",
+  "best_epoch": 1,
+  "best_val_plcc": 1.0,
+  "best_val_metric_name": "PLCC",
+  "best_val_metric_value": 1.0,
+  "num_history_rows": 1,
+  "train_split_csv": "/workspace/MT-NR-OIQA/exp/meta/splits/train_s3407_b529fc404c.csv",
+  "val_split_csv": "/workspace/MT-NR-OIQA/exp/meta/splits/val_s3407_b529fc404c.csv",
+  "test_split_csv": "/workspace/MT-NR-OIQA/exp/meta/splits/test_s3407_b529fc404c.csv",
+  "val_best": {
+    "PLCC": 1.0,
+    "SRCC": 0.9999999999999999,
+    "RMSE": 38.64579927335888,
+    "distortion_acc": 0.5,
+    "compression_acc": 0.0,
+    "num_samples": 2,
+    "num_batches": 1
+  },
+  "val_best_per_type": {
+    "AVC": {
+      "PLCC": 1.0,
+      "SRCC": 0.9999999999999999,
+      "RMSE": 38.64579927335888
+    }
+  },
+  "accumulation_steps": 1,
+  "max_train_batches": 1,
+  "max_eval_batches": 1,
+  "test": {
+    "PLCC": 1.0,
+    "SRCC": 0.9999999999999999,
+    "RMSE": 40.134940874508175,
+    "distortion_acc": 0.0,
+    "compression_acc": 0.0,
+    "num_samples": 2,
+    "num_batches": 1
+  },
+  "test_per_type": {
+    "AVC": {
+      "PLCC": 1.0,
+      "SRCC": 0.9999999999999999,
+      "RMSE": 40.134940874508175
+    }
+  }
+}
