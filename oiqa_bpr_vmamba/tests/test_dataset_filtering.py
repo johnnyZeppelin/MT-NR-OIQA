@@ -50,7 +50,44 @@ def test_dataset_can_filter_compression_types(tmp_path: Path) -> None:
         viewport_size=(16, 16),
         num_viewports=20,
         allowed_compression_types=['JPEG'],
+        compression_classes=['ref', 'AVC', 'HEVC', 'JPEG'],
     )
     assert len(ds) == 1
     sample = ds[0]
-    assert sample['compression_type'].item() == 0
+    assert sample['compression_type'].item() == 3
+
+
+def test_dataset_respects_custom_compression_order(tmp_path: Path) -> None:
+    rows = []
+    distorted_global = tmp_path / '001.png'
+    restored_global = tmp_path / '001_r.png'
+    _make_img(distorted_global)
+    _make_img(restored_global)
+    row = {
+        'image_id': '001',
+        'distorted_global_path': str(distorted_global),
+        'restored_global_path': str(restored_global),
+        'mos': 1.0,
+        'compression_type': 'ref',
+        'distortion_level': 0,
+    }
+    for v in range(1, 21):
+        vp = tmp_path / f'001_fov{v}.png'
+        rvp = tmp_path / f'001_fov{v}_r.png'
+        dvp = tmp_path / f'001_fov{v}_d.png'
+        _make_img(vp); _make_img(rvp); _make_img(dvp)
+        row[f'viewport_{v:02d}'] = str(vp)
+        row[f'restored_viewport_{v:02d}'] = str(rvp)
+        row[f'degraded_viewport_{v:02d}'] = str(dvp)
+    rows.append(row)
+    manifest = tmp_path / 'manifest_ref.csv'
+    pd.DataFrame(rows).to_csv(manifest, index=False)
+    ds = CVIQDataset(
+        manifest_csv=manifest,
+        split_csv=None,
+        image_size=(16, 16),
+        viewport_size=(16, 16),
+        num_viewports=20,
+        compression_classes=['ref', 'AVC', 'HEVC', 'JPEG'],
+    )
+    assert ds[0]['compression_type'].item() == 0

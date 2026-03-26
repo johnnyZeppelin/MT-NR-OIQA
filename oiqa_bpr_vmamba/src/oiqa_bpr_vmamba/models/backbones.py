@@ -1,10 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Sequence
-import importlib.util
-import sys
 import warnings
 
 import torch
@@ -28,31 +25,6 @@ def _try_import_timm():
     except Exception as exc:  # pragma: no cover - env-specific
         _TIMM_IMPORT_ERROR = exc
         return None
-
-
-def _load_vmamba_module(repo_root: str | None = None):
-    candidates: list[Path] = []
-    if repo_root:
-        root = Path(repo_root)
-        if root.is_file() and root.name == 'vmamba.py':
-            candidates.append(root)
-        else:
-            candidates.append(root / 'vmamba.py')
-    for path in candidates:
-        if path.exists():
-            try:
-                spec = importlib.util.spec_from_file_location('oiqa_external_vmamba', path)
-                if spec is None or spec.loader is None:
-                    raise ImportError(f'Failed to create module spec for VMamba source: {path}')
-                module = importlib.util.module_from_spec(spec)
-                sys.modules.setdefault('oiqa_external_vmamba', module)
-                spec.loader.exec_module(module)
-                return module
-            except Exception as exc:
-                warnings.warn(f'Failed to import external VMamba source from {path}: {exc}. Falling back to vendored official copy.')
-
-    from oiqa_bpr_vmamba.third_party import vmamba_official
-    return vmamba_official
 
 
 class ConvNormAct(nn.Module):
@@ -172,77 +144,9 @@ class ViTMultiBlockBackbone(nn.Module):
         return outputs
 
 
-_VMAMBA_VARIANTS: dict[str, dict[str, object]] = {
-    'vmamba_tiny_s1l8': dict(depths=[2, 2, 8, 2], dims=96, drop_path_rate=0.2, ssm_ratio=1.0),
-    'vmamba_tiny_s2l5': dict(depths=[2, 2, 5, 2], dims=96, drop_path_rate=0.2, ssm_ratio=2.0),
-    'vmamba_small_s2l15': dict(depths=[2, 2, 15, 2], dims=96, drop_path_rate=0.3, ssm_ratio=2.0),
-    'vmamba_base_s2l15': dict(depths=[2, 2, 15, 2], dims=128, drop_path_rate=0.6, ssm_ratio=2.0),
-}
-
-
-class OfficialVMambaBackbone(nn.Module):
-    def __init__(
-        self,
-        variant: str = 'vmamba_tiny_s1l8',
-        pretrained_path: str | None = None,
-        repo_root: str | None = None,
-        out_indices: Sequence[int] = (1, 2, 3),
-        channel_first: bool = True,
-    ) -> None:
-        super().__init__()
-        variant = variant.lower()
-        if variant not in _VMAMBA_VARIANTS:
-            raise ValueError(f'Unsupported VMamba variant: {variant}. Known: {sorted(_VMAMBA_VARIANTS)}')
-        vmamba = _load_vmamba_module(repo_root)
-        cfg = dict(_VMAMBA_VARIANTS[variant])
-        dims = int(cfg['dims'])
-        channels = [dims * (2 ** i) for i in range(4)]
-        self.model = vmamba.Backbone_VSSM(
-            out_indices=tuple(out_indices),
-            pretrained=pretrained_path,
-            patch_size=4,
-            in_chans=3,
-            num_classes=1000,
-            ssm_d_state=1,
-            ssm_ratio=float(cfg['ssm_ratio']),
-            ssm_dt_rank='auto',
-            ssm_act_layer='silu',
-            ssm_conv=3,
-            ssm_conv_bias=False,
-            ssm_drop_rate=0.0,
-            ssm_init='v0',
-            forward_type='v05_noz',
-            mlp_ratio=4.0,
-            mlp_act_layer='gelu',
-            mlp_drop_rate=0.0,
-            gmlp=False,
-            patch_norm=True,
-            norm_layer=('ln2d' if channel_first else 'ln'),
-            downsample_version='v3',
-            patchembed_version='v2',
-            use_checkpoint=False,
-            posembed=False,
-            imgsize=224,
-            depths=cfg['depths'],
-            dims=dims,
-            drop_path_rate=float(cfg['drop_path_rate']),
-        )
-        self.spec = MultiScaleFeatureSpec(channels=[channels[i] for i in out_indices])
-
-    def forward(self, x: torch.Tensor) -> list[torch.Tensor]:
-        return list(self.model(x))
-
-
 class GlobalBackboneFactory:
     @staticmethod
-    def build(
-        backbone_type: str,
-        backbone_name: str,
-        pretrained: bool,
-        fallback_name: str | None = None,
-        pretrained_path: str | None = None,
-        vmamba_repo_root: str | None = None,
-    ) -> nn.Module:
+    def build(backbone_type: str, backbone_name: str, pretrained: bool, fallback_name: str | None = None) -> nn.Module:
         backbone_type = backbone_type.lower()
         if backbone_type == 'simple_cnn':
             return SimpleHierarchicalCNN(channels=(32, 64, 128, 256), max_input_hw=(512, 1024))
@@ -252,24 +156,7 @@ class GlobalBackboneFactory:
             except Exception as exc:
                 warnings.warn(f'Falling back from ViT backbone {backbone_name} to simple CNN because: {exc}')
                 return SimpleHierarchicalCNN(channels=(32, 64, 128, 256), max_input_hw=(512, 1024))
-        if backbone_type == 'vmamba':
-            try:
-                return OfficialVMambaBackbone(
-                    variant=backbone_name,
-                    pretrained_path=pretrained_path if pretrained else None,
-                    repo_root=vmamba_repo_root,
-                    out_indices=(1, 2, 3),
-                    channel_first=True,
-                )
-            except Exception as exc:
-                warnings.warn(f'Official VMamba backbone {backbone_name} failed: {exc}. Trying fallback backbones.')
-                if fallback_name is not None:
-                    try:
-                        return TimmFeatureBackbone(fallback_name, pretrained=pretrained, out_indices=(1, 2, 3))
-                    except Exception as inner_exc:
-                        warnings.warn(f'Fallback backbone {fallback_name} also failed: {inner_exc}. Using simple CNN.')
-                return SimpleHierarchicalCNN(channels=(32, 64, 128, 256), max_input_hw=(512, 1024))
-        if backbone_type in {'timm_hierarchical', 'hierarchical'}:
+        if backbone_type in {'timm_hierarchical', 'vmamba', 'hierarchical'}:
             try:
                 return TimmFeatureBackbone(backbone_name, pretrained=pretrained, out_indices=(1, 2, 3))
             except Exception as exc:

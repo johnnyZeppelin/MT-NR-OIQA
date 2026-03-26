@@ -30,6 +30,7 @@ class Trainer:
         best_metric_name: str = 'PLCC',
         maximize_best_metric: bool = True,
         early_stopping_patience: int | None = None,
+        compression_class_names: list[str] | None = None,
     ) -> None:
         self.model = model
         self.criterion = criterion
@@ -50,6 +51,7 @@ class Trainer:
         self.best_val_metric = float('-inf') if maximize_best_metric else float('inf')
         self.best_val_plcc = float('-inf')
         self._epochs_without_improvement = 0
+        self.compression_class_names = list(compression_class_names or ['ref', 'AVC', 'HEVC', 'JPEG'])
 
     def _move_batch(self, batch: dict[str, Any]) -> dict[str, Any]:
         out = {}
@@ -149,7 +151,7 @@ class Trainer:
         else:
             overall = {'PLCC': 0.0, 'SRCC': 0.0, 'RMSE': 0.0}
         per_type = {}
-        type_map = {0: 'JPEG', 1: 'AVC', 2: 'HEVC', 3: 'ref'}
+        type_map = {idx: name for idx, name in enumerate(self.compression_class_names)}
         for type_id, name in type_map.items():
             sub = df[df['compression_type_id'] == type_id]
             if len(sub) > 1:

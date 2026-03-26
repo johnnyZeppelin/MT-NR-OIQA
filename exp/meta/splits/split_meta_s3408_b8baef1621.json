@@ -1,0 +1,11 @@
+{
+  "seed": 3408,
+  "train_ratio": 0.7200000000000001,
+  "val_ratio": 0.08000000000000002,
+  "test_ratio": 0.2,
+  "train_size": 391,
+  "val_size": 43,
+  "test_size": 110,
+  "stratify_by": "compression_type",
+  "signature": "b8baef1621"
+}

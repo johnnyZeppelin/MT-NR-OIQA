@@ -1,0 +1,26 @@
+{
+  "epoch": 1,
+  "monitor_metric": "PLCC",
+  "monitor_value": 0.2371393829497054,
+  "val": {
+    "PLCC": 0.2371393829497054,
+    "SRCC": 0.21623785020011432,
+    "RMSE": 15.988446706065305,
+    "distortion_acc": 0.07407407407407407,
+    "compression_acc": 0.037037037037037035,
+    "num_samples": 54,
+    "num_batches": 14
+  },
+  "losses": {
+    "loss_total": 248.53342287881034,
+    "loss_quality": 248.13716411590576,
+    "loss_distortion": 2.511983735220773,
+    "loss_compression": 1.4505749174526759
+  },
+  "aux_metrics": {
+    "distortion_acc": 0.07407407407407407,
+    "compression_acc": 0.037037037037037035,
+    "num_samples": 54,
+    "num_batches": 14
+  }
+}

@@ -87,6 +87,7 @@ def main() -> None:
         amp=False,
         clip_grad_norm=None,
         fit_nonlinear_mapping=bool(cfg['evaluation']['fit_nonlinear_mapping']),
+        compression_class_names=[str(x) for x in cfg['model'].get('compression_classes', ['ref', 'AVC', 'HEVC', 'JPEG'])],
     )
 
     if args.evaluate_all_types:

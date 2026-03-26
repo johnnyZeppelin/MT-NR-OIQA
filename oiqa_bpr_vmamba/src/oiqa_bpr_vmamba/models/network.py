@@ -33,11 +33,9 @@ class OIQABPRVMamba(nn.Module):
         if self.use_global:
             self.global_backbone = GlobalBackboneFactory.build(
                 cfg.get('global_backbone_type', 'timm_hierarchical'),
-                cfg.get('global_backbone_name', 'vmamba_tiny_s1l8'),
+                cfg.get('global_backbone_name', 'vmamba_tiny'),
                 pretrained=cfg.get('pretrained', True),
                 fallback_name=cfg.get('global_backbone_fallback'),
-                pretrained_path=cfg.get('global_pretrained_path'),
-                vmamba_repo_root=cfg.get('vmamba_repo_root'),
             )
             global_dims = self.global_backbone.spec.channels
         else:

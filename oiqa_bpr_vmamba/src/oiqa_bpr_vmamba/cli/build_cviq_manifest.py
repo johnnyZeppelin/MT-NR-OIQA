@@ -70,6 +70,8 @@ def _make_degraded_viewport(path: Path, root: Path) -> Path:
 
 
 def _infer_compression(row: pd.Series, viewport_paths: list[Path], compression_column: str | None) -> str:
+    if compression_column is not None and str(compression_column).lower() == 'none':
+        compression_column = None
     if compression_column and compression_column in row.index and pd.notna(row[compression_column]):
         value = str(row[compression_column]).strip()
         if value:
@@ -92,8 +94,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument('--num-viewports', type=int, default=20)
     parser.add_argument('--mos-column', type=str, default='mos')
     parser.add_argument('--global-column', type=str, default='fu')
-    parser.add_argument('--compression-column', type=str, default=None)
-    parser.add_argument('--distortion-level-column', type=str, default=None)
+    parser.add_argument('--compression-column', type=str, default='compression_type')
+    parser.add_argument('--distortion-level-column', type=str, default='distortion_level')
     parser.add_argument('--num-distortion-levels', type=int, default=5)
 
     parser.add_argument(
@@ -139,20 +141,21 @@ def _build_sample(
     viewport_paths = [_normalize_path(str(row[c]), path_prefix) for c in viewport_cols]
 
     dataset_home = _dataset_home_from_global(global_path)
+    dataset_parent = dataset_home.parent
     global_restored_root = _resolve_root(
         args.global_restored_root,
         path_prefix,
-        dataset_home / 'restored' / f'{dataset_home.name}_restored',
+        dataset_parent / f'{dataset_home.name}_r',
     )
     viewport_restored_root = _resolve_root(
         args.viewport_restored_root,
         path_prefix,
-        dataset_home / 'restored' / 'view_ports_restored',
+        dataset_parent / 'view_ports_r',
     )
     degraded_root = _resolve_root(
         args.degraded_root,
         path_prefix,
-        dataset_home / 'degraded' / 'view_ports_degraded',
+        dataset_parent / 'view_ports_d',
     )
 
     compression_type = _infer_compression(row, viewport_paths, args.compression_column)
@@ -167,8 +170,11 @@ def _build_sample(
         sample[f'viewport_{i:02d}'] = str(vp)
         sample[f'restored_viewport_{i:02d}'] = str(_make_restored_viewport(vp, viewport_restored_root))
         sample[f'degraded_viewport_{i:02d}'] = str(_make_degraded_viewport(vp, degraded_root))
-    if args.distortion_level_column and args.distortion_level_column in row.index and pd.notna(row[args.distortion_level_column]):
-        sample['distortion_level'] = int(row[args.distortion_level_column])
+    distortion_level_column = args.distortion_level_column
+    if distortion_level_column is not None and str(distortion_level_column).lower() == 'none':
+        distortion_level_column = None
+    if distortion_level_column and distortion_level_column in row.index and pd.notna(row[distortion_level_column]):
+        sample['distortion_level'] = int(row[distortion_level_column])
     return sample
 
 

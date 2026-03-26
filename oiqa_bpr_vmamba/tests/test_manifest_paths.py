@@ -71,3 +71,27 @@ def test_create_or_load_splits_supports_zero_val_or_test(tmp_path: Path) -> None
     assert len(pd.read_csv(train_csv)) == 8
     assert len(pd.read_csv(val_csv)) == 0
     assert len(pd.read_csv(test_csv)) == 2
+
+
+import subprocess, sys
+
+
+def test_manifest_defaults_pick_new_csv_columns(tmp_path: Path) -> None:
+    csv_path = tmp_path / 'cviq_mos.csv'
+    row = {
+        'fu': 'data/CVIQ/001.png',
+        'mos': 1.0,
+        'compression_type': 'ref',
+        'distortion_level': 11,
+    }
+    for i in range(1, 21):
+        row[f'f{i:02d}'] = f'data/view_ports/001/001_fov{i}.png'
+    pd.DataFrame([row]).to_csv(csv_path, index=False)
+    out = tmp_path / 'manifest.csv'
+    cmd = [sys.executable, '-m', 'oiqa_bpr_vmamba.cli.build_cviq_manifest', '--csv', str(csv_path), '--path-prefix', str(tmp_path), '--global-restored-root', 'data/CVIQ_r', '--viewport-restored-root', 'data/view_ports_r', '--degraded-root', 'data/view_ports_d', '--output', str(out)]
+    env = dict(**__import__('os').environ)
+    env['PYTHONPATH'] = str(Path(__file__).resolve().parents[1] / 'src')
+    res = subprocess.run(cmd, check=True, env=env, capture_output=True, text=True)
+    manifest = pd.read_csv(out)
+    assert manifest.loc[0, 'compression_type'] == 'ref'
+    assert int(manifest.loc[0, 'distortion_level']) == 11

@@ -67,7 +67,12 @@ def build_dataset(
     compression_types: Iterable[str] | None = None,
 ) -> CVIQDataset:
     kwargs = _dataset_kwargs_from_cfg(cfg)
-    return CVIQDataset(split_csv=split_csv, allowed_compression_types=compression_types, **kwargs)
+    return CVIQDataset(
+        split_csv=split_csv,
+        allowed_compression_types=compression_types,
+        compression_classes=cfg['model'].get('compression_classes', ['ref', 'AVC', 'HEVC', 'JPEG']),
+        **kwargs,
+    )
 
 
 def build_dataloaders(

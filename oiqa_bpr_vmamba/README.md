@@ -29,7 +29,7 @@ pip install -e .
 The default CSV column names exactly match your setting:
 
 ```text
-fu, f01, f02, ..., f20, mos
+fu, f01, f02, ..., f20, mos, compression_type, distortion_level
 ```
 
 - `fu`: distorted ERP image path
@@ -38,8 +38,19 @@ fu, f01, f02, ..., f20, mos
 
 Optional columns:
 
-- `compression_type`: only needed when the compression label cannot be inferred from the path
-- `distortion_level`: if absent, the code will derive it automatically by MOS quantile binning
+- `compression_type`: now treated as a standard CSV column by default
+- `distortion_level`: now treated as a standard CSV column by default
+
+Recommended values for the current CVIQ CSV are:
+
+- `compression_type` in `['ref', 'AVC', 'HEVC', 'JPEG']`
+- `distortion_level` in `[0, 1, 2, ..., 11]`
+
+If you ever need backward compatibility with an older CSV that lacks these two columns, you can still pass:
+
+```bash
+--compression-column none --distortion-level-column none
+```
 
 The same convention can be reused later for `OIQA` and `OSIQA`.
 
@@ -80,7 +91,7 @@ If your CSV already contains absolute paths, `--path-prefix` is not needed.
 The manifest builder supports both of these as long as the CSV points to the real files:
 
 ```text
-data/CVIQ/view_ports/JPEG/326_fov15.png
+data/view_ports/326/326_fov15.png
 ```
 
 and
@@ -94,7 +105,7 @@ For restored and degraded viewport paths, the code mirrors the relative subtree 
 Examples:
 
 ```text
-source:   data/CVIQ/view_ports/JPEG/326_fov15.png
+source:   data/view_ports/326/326_fov15.png
 restored: data/CVIQ/restored/view_ports_restored/JPEG/326_fov15_r.png
 degraded: data/CVIQ/degraded/view_ports_degraded/JPEG/326_fov15_d.png
 ```
@@ -123,20 +134,23 @@ data/CVIQ/326.png -> data/CVIQ/restored/CVIQ_restored/326_r.png
 
 ```text
 data/
-└── CVIQ/
-    ├── 001.png
-    ├── 002.png
-    ├── ...
-    ├── view_ports/
-    │   └── ...
-    ├── restored/
-    │   ├── CVIQ_restored/
-    │   └── view_ports_restored/
-    ├── degraded/
-    │   └── view_ports_degraded/
-    └── metadata/
-        ├── cviq_mos.csv
-        └── manifest_cviq.csv
+├── CVIQ/
+│   ├── 001.png
+│   ├── 002.png
+│   └── ...
+├── CVIQ_r/
+│   ├── 001_r.png
+│   ├── 002_r.png
+│   └── ...
+├── view_ports/
+│   ├── 001/001_fov1.png
+│   └── ...
+├── view_ports_r/
+│   ├── 001/001_fov1_r.png
+│   └── ...
+├── view_ports_d/
+│   └── ...
+└── cviq_mos.csv
 ```
 
 ---
@@ -171,35 +185,40 @@ Typical command when the CSV stores relative `data/...` paths:
 
 ```bash
 oiqa-build-cviq-manifest \
-  --csv F:/ws/dataset/data/CVIQ/metadata/cviq_mos.csv \
-  --path-prefix F:/ws/dataset \
-  --output F:/ws/dataset/data/CVIQ/metadata/manifest_cviq.csv
+  --csv /workspace/MT-NR-OIQA/data/cviq_mos.csv \
+  --path-prefix /workspace/MT-NR-OIQA \
+  --global-restored-root data/CVIQ_r \
+  --viewport-restored-root data/view_ports_r \
+  --degraded-root data/view_ports_d \
+  --output /workspace/MT-NR-OIQA/exp/meta/manifest_cviq.csv
 ```
 
 You can also explicitly override where restored or degraded paths should be written in the manifest:
 
 ```bash
 oiqa-build-cviq-manifest \
-  --csv F:/ws/dataset/data/CVIQ/metadata/cviq_mos.csv \
-  --path-prefix F:/ws/dataset \
-  --global-restored-root data/CVIQ/restored/CVIQ_restored \
-  --viewport-restored-root data/CVIQ/restored/view_ports_restored \
-  --degraded-root data/CVIQ/degraded/view_ports_degraded \
-  --output F:/ws/dataset/data/CVIQ/metadata/manifest_cviq.csv
+  --csv /workspace/MT-NR-OIQA/data/cviq_mos.csv \
+  --path-prefix /workspace/MT-NR-OIQA \
+  --global-restored-root data/CVIQ_r \
+  --viewport-restored-root data/view_ports_r \
+  --degraded-root data/view_ports_d \
+  --output /workspace/MT-NR-OIQA/exp/meta/manifest_cviq.csv
 ```
 
-If compression labels cannot be inferred from the paths, add a CSV column such as `compression_type` and pass:
+The current project now assumes `compression_type` and `distortion_level` already exist in the CSV.
+
+If you ever need to fall back to the older CSV style, use:
 
 ```bash
---compression-column compression_type
+--compression-column none --distortion-level-column none
 ```
 
 ### Step 2. Synthesize degraded viewports
 
 ```bash
 oiqa-synthesize-degraded \
-  --manifest F:/ws/dataset/data/CVIQ/metadata/manifest_cviq.csv \
-  --output-root F:/ws/dataset/data/CVIQ/degraded/view_ports_degraded
+  --manifest /workspace/MT-NR-OIQA/exp/meta/manifest_cviq.csv \
+  --output-root /workspace/MT-NR-OIQA/data/view_ports_d
 ```
 
 This writes degraded files to the exact degraded paths already stored in the manifest and checks that they are under `--output-root`.
@@ -282,7 +301,7 @@ Evaluate a user-specified split CSV:
 oiqa-eval-cviq \
   --config configs/cviq_default.yaml \
   --checkpoint runs/cviq_default/best.pt \
-  --split-csv F:/ws/dataset/data/CVIQ/metadata/splits/test_3407.csv
+  --split-csv /workspace/MT-NR-OIQA/exp/meta/splits/test_s3407_xxxxx.csv
 ```
 
 ### Step 5. Run ablations
@@ -434,6 +453,18 @@ Derived tables include:
 
 ---
 
+## Current CVIQ label settings
+
+For your current CSV, the project now assumes:
+
+- `model.num_distortion_levels = 12`
+- `model.compression_classes = [ref, AVC, HEVC, JPEG]`
+
+This matches:
+
+- `distortion_level` in `[0, 1, ..., 11]`
+- `compression_type` in `['ref', 'AVC', 'HEVC', 'JPEG']`
+
 ## Config note
 
 The training code itself only depends on the manifest and split CSVs. Once the manifest is generated correctly, you can move the dataset anywhere by updating either:
@@ -445,30 +476,13 @@ The training code itself only depends on the manifest and split CSVs. Once the m
 
 ## Notes on the global backbone
 
-The project now supports two global-backbone modes:
+The paper uses VMamba for global feature extraction. This code keeps that interface, but the actual backbone is wrapped so you can:
 
-- `simple_cnn`: dependency-light fallback for smoke tests and engineering validation
-- `vmamba`: exact VMamba integration through the official `vmamba.py` implementation
+- use an installable VMamba/timm backbone when available
+- switch to a ViT-like backbone for backbone ablations
+- keep the rest of the code unchanged
 
-For exact VMamba integration, the code supports:
-
-- loading the official single-file implementation from a local VMamba source tree via `model.vmamba_repo_root`
-- falling back to the vendored official `vmamba.py` copy shipped inside this project
-- loading a local classification checkpoint via `model.global_pretrained_path`
-
-The recommended exact-VMamba config for your current setup is provided as:
-
-```text
-configs/cviq_vmamba_tiny_s1l8.yaml
-```
-
-That config is pre-filled for:
-
-- `VMamba-T [s1l8]`
-- weight path `/workspace/MT-NR-OIQA/vssms/vssm1_tiny_0230s_ckpt_epoch_264.pth`
-- VMamba source repo `/workspace/external_repos/VMamba`
-
-If the official VMamba import fails at runtime, the code will warn and fall back to `simple_cnn` so the rest of the training / evaluation / table-export pipeline remains usable.
+This also keeps the project easy to extend to OIQA later by only resizing ERP inputs to `4096x2048` before the global branch.
 
 ---
 
@@ -499,51 +513,3 @@ If something goes wrong, check CLI help first:
 ```bash
 oiqa-run-full-benchmark --help
 ```
-
-
-## Exact VMamba integration
-
-The project now includes an exact-VMamba path through the official `vmamba.py` implementation.
-
-Two usage modes are supported:
-
-- **External source mode**: set `model.vmamba_repo_root` to a local VMamba repo directory that contains `vmamba.py`
-- **Vendored mode**: if the external import fails, the project falls back to the vendored official copy at
-  `src/oiqa_bpr_vmamba/third_party/vmamba_official.py`
-
-The recommended config for your current setup is:
-
-```text
-configs/cviq_vmamba_tiny_s1l8.yaml
-```
-
-That config is pre-filled for:
-
-- `VMamba-T [s1l8]`
-- checkpoint path `/workspace/MT-NR-OIQA/vssms/vssm1_tiny_0230s_ckpt_epoch_264.pth`
-- VMamba source repo `/workspace/external_repos/VMamba`
-
-Typical exact-VMamba training command:
-
-```bash
-oiqa-train-cviq \
-  --config /workspace/MT-NR-OIQA/configs/cviq_vmamba_tiny_s1l8.yaml \
-  --device cuda:0
-```
-
-Typical exact-VMamba evaluation command:
-
-```bash
-oiqa-eval-cviq \
-  --config /workspace/MT-NR-OIQA/configs/cviq_vmamba_tiny_s1l8.yaml \
-  --checkpoint best \
-  --split test \
-  --evaluate-all-types \
-  --device cuda:0
-```
-
-Notes:
-
-- `timm` is still required.
-- `triton` and CUDA selective-scan kernels are optional; if unavailable, the official file falls back to slower PyTorch implementations where possible.
-- If the external VMamba repo import fails, the project will warn and use the vendored official copy instead.

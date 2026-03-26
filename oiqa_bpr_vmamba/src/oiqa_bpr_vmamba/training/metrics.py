@@ -4,10 +4,16 @@ from typing import Iterable
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.stats import spearmanr, pearsonr
+from scipy.special import expit
 
+
+# def five_param_func(x: np.ndarray, b1: float, b2: float, b3: float, b4: float, b5: float) -> np.ndarray:
+#     logistic = 0.5 - 1.0 / (1.0 + np.exp(b2 * (x - b3)))
+#     return b1 * logistic + b4 * x + b5
 
 def five_param_func(x: np.ndarray, b1: float, b2: float, b3: float, b4: float, b5: float) -> np.ndarray:
-    logistic = 0.5 - 1.0 / (1.0 + np.exp(b2 * (x - b3)))
+    z = np.clip(b2 * (x - b3), -60.0, 60.0)
+    logistic = expit(z) - 0.5
     return b1 * logistic + b4 * x + b5
 
 
