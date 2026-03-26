@@ -1,6 +1,6 @@
 # OIQA BPR-VMamba (CVIQ-first implementation)
 
-This repository is a **CVIQ-first** reimplementation of a BPR + VMamba style OIQA system, organized as an installable Python package so cross-file imports stay stable.
+This repository is an implementation of a BPR + VMamba style OIQA system, organized as an installable Python package implementation of *Multi-Task Guided No-Reference Omnidirectional Image Quality Assessment With Feature Interaction* (https://doi.org/10.1109/TCSVT.2025.3551723).
 
 ```bash
 pip install -e .

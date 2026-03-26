@@ -8,18 +8,6 @@ ckpts
 *.ckpt
 *.bin
 
-# --- ignore images ---
-*.png
-*.bmp
-*.jpg
-*.jpeg
-*.gif
-*.tiff
-*.webp
-
-# --- 如果想保留某个特定文件夹下的图片（可选） ---
-# !assets/*.png
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
